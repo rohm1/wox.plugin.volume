@@ -1,0 +1,12 @@
+﻿{
+  "ID":"0F493E67251B45408AF31ED99AFB4B3A",
+  "ActionKeyword":"vol",
+  "Name":"Wox.Plugin.Volume",
+  "Description":"Control the system volume with Wox",
+  "Author":"rohm1",
+  "Version":"1.0.0",
+  "Language":"csharp",
+  "Website": "http://github.com/rohm1/wox.plugin.volume",
+  "IcoPath": "Images\\icon.png",
+  "ExecuteFileName":"Wox.Plugin.Volume.dll"
+}
