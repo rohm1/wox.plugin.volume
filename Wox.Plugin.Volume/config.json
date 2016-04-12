@@ -1,5 +1,8 @@
 ﻿{
   "step": 5,
   "up": "+",
-  "down":  "-"
+  "down": "-",
+  "mute":  "m",
+  "style": "percent",
+  "applyOnDelete":  false
 }

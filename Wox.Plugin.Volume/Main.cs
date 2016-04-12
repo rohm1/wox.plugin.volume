@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Web.Script.Serialization;
-using CoreAudioApi;
 using System.IO;
 
 namespace Wox.Plugin.Volume
@@ -8,33 +8,42 @@ namespace Wox.Plugin.Volume
     public class Main : IPlugin
     {
         private PluginInitContext context;
-        private MMDevice PlaybackDevice;
+        private Manager volumeManager;
         private Config config;
         private bool initialized = false;
+        private string initializaionError;
+        private string lastQuery = "";
 
         public void Init(PluginInitContext context)
         {
             this.context = context;
-
+            
+            // 1. read the config.json
             try
             {
-                string json = (new StreamReader(context.CurrentPluginMetadata.PluginDirectory + "\\config.json")).ReadToEnd();
-                config = (new JavaScriptSerializer()).Deserialize<Config>(json);
+                using (StreamReader sr = new StreamReader(context.CurrentPluginMetadata.PluginDirectory + "\\config.json"))
+                {
+                    config = (new JavaScriptSerializer()).Deserialize<Config>(sr.ReadToEnd());
+                }
             }
-            catch (System.Exception)
+            catch (Exception e)
             {
+                initializaionError = e.Message;
                 return;
             }
 
+            // 2. initialize the volume handling
             try
             {
-                PlaybackDevice = MMDeviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                volumeManager = new Manager();
             }
-            catch (CoreAudioException)
+            catch (Exception e)
             {
+                initializaionError = e.Message;
                 return;
             }
 
+            // 3. all good
             initialized = true;
         }
 
@@ -50,19 +59,87 @@ namespace Wox.Plugin.Volume
             Result result = new Result()
             {
                 Title = "Current volume",
-                SubTitle = "no info",
+                SubTitle = initializaionError,
                 IcoPath = "Images\\icon.png"
             };
 
+            // initialization failed, we can't process the input
             if (!initialized)
             {
                 return result;
             }
 
-            string queryString = query.ToString();
-            string lastChar = queryString.Substring(queryString.Length - 1);
+            string queryString = query.RawQuery;
 
-            int volume = GetVolume();
+            // do nothing if the config says so and the user deleted the input
+            if (config.applyOnDelete || !config.applyOnDelete && lastQuery.Length < queryString.Length)
+            {
+                // process the last char
+                ApplyKey(
+                    queryString.Substring(queryString.Length - 1)
+                );
+            }
+            
+            // write the volume description in the result
+            result.SubTitle = GetVolumeDescription();
+
+            // store the query as last query
+            lastQuery = queryString;
+
+            // change the icon if muted
+            if (volumeManager.IsMute())
+            {
+                result.IcoPath = "Images\\mute.png";
+            }
+
+            return result;
+        }
+
+        private string GetVolumeDescription()
+        {
+            if (volumeManager.IsMute())
+            {
+                return "[X]";
+            }
+
+            int volume = volumeManager.GetVolume();
+            string volumeDesc;
+            switch (config.style)
+            {
+                case Config.STYLE_PERCENT:
+                    volumeDesc = volume + "%";
+                    break;
+
+                case Config.STYLE_BAR:
+                    volumeDesc = "[";
+                    for (int i = 0; i < 100; i += config.step)
+                    {
+                        volumeDesc = string.Concat(volumeDesc, volume > i ? "=" : "-");
+                    }
+                    volumeDesc = string.Concat(volumeDesc, "]");
+                    break;
+
+                default:
+                    volumeDesc = "";
+                    break;
+            }
+
+            return volumeDesc;
+        }
+
+        private void ApplyKey(string lastChar)
+        {
+            if (lastChar.Equals(config.mute))
+            {
+                volumeManager.ToggleMute();
+            }
+
+            if (volumeManager.IsMute())
+            {
+                return;
+            }
+
+            int volume = volumeManager.GetVolume();
             if (lastChar.Equals(config.up))
             {
                 volume += config.step;
@@ -72,37 +149,7 @@ namespace Wox.Plugin.Volume
                 volume -= config.step;
             }
 
-            SetVolume(volume);
-            volume = GetVolume();
-
-            string volumeDesc = "[";
-            for (int i = 0; i < 100; i += config.step)
-            {
-                volumeDesc = string.Concat(volumeDesc, volume > i ? "=" : "-");
-            }
-            volumeDesc = string.Concat(volumeDesc, "]");
-
-            result.SubTitle = volumeDesc;
-            return result;
-        }
-
-        public int GetVolume()
-        {
-            return (int) (PlaybackDevice.AudioEndpointVolumeEx.GetMasterVolumeLevelScalar() * 100);
-        }
-
-        public void SetVolume(int volume)
-        {
-            if (volume < 0)
-            {
-                volume = 0;
-            }
-            else if (volume > 100)
-            {
-                volume = 100;
-            }
-
-            PlaybackDevice.AudioEndpointVolumeEx.SetMasterVolumeLevelScalar(volume / 100.0f);
+            volumeManager.SetVolume(volume);
         }
 
     }
