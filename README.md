@@ -15,5 +15,6 @@ Get it from [WPM](http://www.getwox.com/plugin/72) or the [downloads pages](http
 ## Gift
 Feel free to offer me some nice icons :)
 
-## Disclaimer
-I don't have sound keys at work..
+## About
+- I don't have sound keys at work..
+- The CoreAudio DLL comes from [here](http://whenimbored.xfx.net/download-links/?did=5). I just had to recompile it for .NET 3.5 since it is compiled for .NET 4.
