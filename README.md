@@ -10,7 +10,7 @@ The increase/decrease step, and the keys to control the volume can be configured
 You can also change the style: default style (`percent`) shows a percentage; `bar` will show a ASCII volume bar.
 
 ## Download
-Get it from the [downloads pages](https://github.com/rohm1/wox.plugin.volume/releases/latest).
+Get it from [WPM](http://www.getwox.com/plugin/72) or the [downloads pages](https://github.com/rohm1/wox.plugin.volume/releases/latest).
 
 ## Gift
 Feel free to offer me some nice icons :)
